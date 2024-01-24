@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/paketo-buildpacks/composer"
-	"github.com/paketo-buildpacks/composer/fakes"
+	"github.com/initializ-buildpacks/composer"
+	"github.com/initializ-buildpacks/composer/fakes"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 
 	"github.com/paketo-buildpacks/packit/v2"

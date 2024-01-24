@@ -1,4 +1,4 @@
-module github.com/paketo-buildpacks/composer
+module github.com/initializ-buildpacks/composer
 
 go 1.18
 

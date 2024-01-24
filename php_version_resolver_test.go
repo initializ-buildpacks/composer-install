@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/paketo-buildpacks/composer"
+	"github.com/initializ-buildpacks/composer"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
