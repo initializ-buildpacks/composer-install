@@ -1,6 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-set -eu
+set -e
+set -u
 set -o pipefail
 
 readonly ROOT_DIR="$(cd "$(dirname "${0}")/.." && pwd)"
@@ -14,7 +15,7 @@ source "${ROOT_DIR}/scripts/.util/tools.sh"
 source "${ROOT_DIR}/scripts/.util/print.sh"
 
 function main {
-  local version output token
+  local version output token flags
   token=""
 
   while [[ "${#}" != 0 ]]; do
@@ -31,6 +32,11 @@ function main {
 
       --token|-t)
         token="${2}"
+        shift 2
+        ;;
+
+      --label)
+        flags+=("--label" "${2}")
         shift 2
         ;;
 
@@ -64,25 +70,20 @@ function main {
 
   tools::install "${token}"
 
-  buildpack_type=buildpack
-  if [ -f "${ROOT_DIR}/extension.toml" ]; then
-    buildpack_type=extension
-  fi
-
-  buildpack::archive "${version}" "${buildpack_type}"
-  buildpackage::create "${output}" "${buildpack_type}"
+  buildpack::archive "${version}"
+  buildpackage::create "${output}" "${flags[@]}"
 }
 
 function usage() {
   cat <<-USAGE
 package.sh --version <version> [OPTIONS]
 
-Packages a buildpack or an extension into a buildpackage .cnb file.
+Packages the buildpack into a buildpackage .cnb file.
 
 OPTIONS
   --help               -h            prints the command usage
-  --version <version>  -v <version>  specifies the version number to use when packaging a buildpack or an extension
-  --output <output>    -o <output>   location to output the packaged buildpackage or extension artifact (default: ${ROOT_DIR}/build/buildpackage.cnb)
+  --version <version>  -v <version>  specifies the version number to use when packaging the buildpack
+  --output <output>    -o <output>   location to output the packaged buildpackage artifact (default: ${ROOT_DIR}/build/buildpackage.cnb)
   --token <token>                    Token used to download assets from GitHub (e.g. jam, pack, etc) (optional)
 USAGE
 }
@@ -102,68 +103,46 @@ function tools::install() {
   local token
   token="${1}"
 
-  util::tools::pack::install \
+  util::tools::jam::install \
     --directory "${BIN_DIR}" \
     --token "${token}"
 
-  if [[ -f "${ROOT_DIR}/.libbuildpack" ]]; then
-    util::tools::packager::install \
-      --directory "${BIN_DIR}"
-  else
-    util::tools::jam::install \
-      --directory "${BIN_DIR}" \
-      --token "${token}"
-  fi
+  util::tools::pack::install \
+    --directory "${BIN_DIR}" \
+    --token "${token}"
 }
 
 function buildpack::archive() {
   local version
   version="${1}"
-  buildpack_type="${2}"
 
-  util::print::title "Packaging ${buildpack_type} into ${BUILD_DIR}/buildpack.tgz..."
+  util::print::title "Packaging buildpack into ${BUILD_DIR}/buildpack.tgz..."
 
-  if [[ -f "${ROOT_DIR}/.libbuildpack" ]]; then
-    packager \
-      --uncached \
-      --archive \
-      --version "${version}" \
-      "${BUILD_DIR}/buildpack"
-  else
-    jam pack \
-      "--${buildpack_type}" "${ROOT_DIR}/${buildpack_type}.toml"\
-      --version "${version}" \
-      --output "${BUILD_DIR}/buildpack.tgz"
-  fi
+  jam pack \
+    --buildpack "${ROOT_DIR}/buildpack.toml" \
+    --version "${version}" \
+    --offline \
+    --output "${BUILD_DIR}/buildpack.tgz"
 }
 
 function buildpackage::create() {
-  local output
+  local output flags
   output="${1}"
-  buildpack_type="${2}"
+  flags=("${@:2}")
 
-  util::print::title "Packaging ${buildpack_type}... ${output}"
+  util::print::title "Packaging buildpack..."
 
-  if [ "$buildpack_type" == "extension" ]; then
-    cwd=$(pwd)
-    cd ${BUILD_DIR}
-    mkdir cnbdir
-    cd cnbdir
-    cp ../buildpack.tgz .
-    tar -xvf buildpack.tgz
-    rm buildpack.tgz
+  args=(
+      --config "${ROOT_DIR}/package.toml"
+      --format file
+    )
 
-    pack \
-      extension package "${output}" \
-        --format file
 
-    cd $cwd
-  else
-    pack \
-      buildpack package "${output}" \
-        --path "${BUILD_DIR}/buildpack.tgz" \
-        --format file
-  fi
+  args+=("${flags[@]}")
+
+  pack \
+    buildpack package "${output}" \
+    "${args[@]}"
 }
 
 main "${@:-}"

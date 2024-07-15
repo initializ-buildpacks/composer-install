@@ -11,23 +11,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  unit:
-    name: Unit Tests
+  builders:
+    name: Get Builders for Testing
     runs-on: ubuntu-22.04
     outputs:
       builders: ${{ steps.builders.outputs.builders }}
     steps:
-    - name: Setup Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 'stable'
-
     - name: Checkout
       uses: actions/checkout@v3
-
-    - name: Run Unit Tests
-      run: ./scripts/unit.sh
-
     - name: Get builders from integration.json
       id: builders
       run: |
@@ -40,10 +31,10 @@ jobs:
   integration:
     name: Integration Tests with Builders
     runs-on: ubuntu-22.04
-    needs: unit
+    needs: [builders]
     strategy:
       matrix:
-        builder: ${{ fromJSON(needs.unit.outputs.builders) }}
+        builder: ${{ fromJSON(needs.builders.outputs.builders) }}
       fail-fast: false  # don't cancel all test jobs when one fails
     steps:
     - name: Setup Go
@@ -55,9 +46,9 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Run Integration Tests
-      run: ./scripts/integration.sh --builder ${{ matrix.builder }} --token ${{ github.token }}
       env:
         TMPDIR: "${{ runner.temp }}"
+      run: ./scripts/integration.sh --builder ${{ matrix.builder }}
 
   roundup:
     name: Integration Tests
