@@ -1,6 +1,6 @@
 # PHP Composer Install Cloud Native Buildpack
 
-This buildpack runs the [composer](https://getcomposer.org/) command `composer install`  to download project dependencies.
+This buildpack runs the [composer](https://getcomposer.org/) command `composer install`  to download project dependencies
 It requires both `composer` and `php` on the path (see [requires](#requires)).
 
 A usage example can be found in the
