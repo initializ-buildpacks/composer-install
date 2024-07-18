@@ -70,7 +70,7 @@ jobs:
     - name: File Failure Alert Issue
       uses: initializ-buildpacks/github-config/actions/issue/file@main
       with:
-        token: ${{ secrets.PAT }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         repo: ${{ github.repository }}
         label: "failure:update-github-config"
         comment_if_exists: true
